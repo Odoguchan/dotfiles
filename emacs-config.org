@@ -1,0 +1,1394 @@
+* t/functions
+  #+begin_src emacs-lisp
+  (defun t/kill-switch-other-window ()
+    "Kill current buffer and switch Window."
+    (interactive)
+    (kill-current-buffer)
+    (other-window 1))
+
+  (defun t/cycle-windows (&optional arg)
+    "Cycle windows on the frame clock-wise.
+      If the function was called with universal-command or with ARG specified,
+      go to the ARG-th window.
+      Else go to the next window."
+
+    (interactive "P")
+    (if (equal arg nil)
+        (other-window -1)
+      (other-window (* -1 arg))))
+
+  ;; https://superuser.com/a/132454
+  ;; (defun switch-to-minibuffer-window ()
+  ;;   "switch to minibuffer window (if active)"
+  ;;   (interactive)
+  ;;   (when (active-minibuffer-window)
+  ;;     (select-frame-set-input-focus (window-frame (active-minibuffer-window)))
+  ;;     (select-window (active-minibuffer-window))))
+  ;; (global-set-key (kbd "<f7>") 'switch-to-minibuffer-window)
+
+  (defun t/reload-config ()
+    "Recompiles org config file on $HOME/emacs-config.el."
+    (interactive)
+    (org-babel-load-file (expand-file-name "~/emacs-config.org")))
+  #+end_src
+
+* emacs
+  #+begin_src emacs-lisp
+  (with-eval-after-load 'diff-mode
+    (define-key diff-mode-map (kbd "M-o") nil))
+
+  (global-set-key (kbd "C-x o") nil)
+  (global-set-key (kbd "M-o") 't/cycle-windows)
+  (global-set-key (kbd "M-C-o") '(lambda () (interactive) (t/cycle-windows -1)))
+
+  ;; custom keys
+  ;; rebind the help keys to f1 and C-?
+  ;; (define-key key-translation-map [?\C-h] [?\C-?])
+
+  ;; (keyboard-translate ?\C-h ?\C-?)
+  (define-key key-translation-map [?\C-h] [?\C-?])
+  ;; (global-set-key (kbd "C-h") 'backward-delete-char-untabify)
+  ;; (define-key key-translation-map [?\C-h] 'backspace)
+
+
+  (global-set-key (kbd "<f1>") 'help-command)
+  ;; (global-set-key (kbd "C-\?") 'help-command)
+
+  (global-set-key (kbd "C-c s /") 'replace-regexp)
+
+  ;; C-x is now C-t, and vice-versa
+  ;; still displayed as C-x/C-t though
+  (define-key key-translation-map [?\C-x] [?\C-t])
+  (define-key key-translation-map [?\C-t] [?\C-x])
+
+  (define-key key-translation-map [?\M-x] [?\M-t])
+  (define-key key-translation-map [?\M-t] [?\M-x])
+
+
+  (setq inhibit-startup-screen t)
+
+  (setq scroll-conservatively 101
+        show-trailing-whitespace t)
+
+  (setq window-divider-default-right-width 1
+        window-divider-default-bottom-width 1
+        window-divider-default-places 'right-only)
+
+  ;; highlight current line only on gui emacs
+  (when window-system (add-hook 'prog-mode-hook 'hl-line-mode))
+
+  ;; Typing yes _sucks_
+  (defalias 'yes-or-no-p 'y-or-n-p)
+
+  ;; highlights the whole expression between the parenthesis
+  (setq show-paren-style 'expression)
+
+  ;; http://ergoemacs.org/emacs/emacs_pretty_lambda.html
+  (setq prettify-symbols-alist
+        '(("lambda" . 955) ; λ
+          ("->" . 10230)   ; ⟶
+          ("=>" . 8658)    ; ⇒
+          (">=" . 10878)
+          ("<=" . 10877)))
+
+  ;; deletes all the selected text when you type
+  (pending-delete-mode t)
+
+  (set-scroll-bar-mode nil)
+
+  ;; shows tips on a small hover window, instead of the minibuffer
+  (tooltip-mode t)
+  (tool-bar-mode -1)
+
+  ;; https://coldnew.github.io/coldnew-emacs/
+  (blink-cursor-mode t)
+
+  ;; shows line/column position
+  (line-number-mode	t)
+  (column-number-mode	t)
+
+
+  (add-hook 'after-init-hook	'window-divider-mode)
+  (add-hook 'prog-mode-hook 	'display-line-numbers-mode)
+  ;; treats camelCase names like different words
+  (add-hook 'prog-mode-hook 	'subword-mode)
+  (add-hook 'prog-mode-hook 	'show-paren-mode)
+  (add-hook 'prog-mode-hook 	'prettify-symbols-mode)
+
+
+  (global-set-key (kbd "C-x h") 'split-window-vertically)
+  (global-set-key (kbd "C-x v") 'split-window-horizontally)
+
+  (global-set-key (kbd "<f6>") 'revert-buffer)
+
+  (global-set-key (kbd "C-c lh") 'hl-line-mode)
+  (global-set-key (kbd "C-c ln") 'display-line-numbers-mode)
+  ;; make 'C-u' "page-up" like in vim
+  (global-unset-key (kbd "M-v"))
+  (global-set-key (kbd "C-u") 'scroll-down-command)
+  (global-set-key (kbd "C-v") 'scroll-up-command)
+  ;; remap universal-prefix 'C-u' to 'C-U'
+  (global-set-key (kbd "C-S-u") 'universal-argument)
+  (global-set-key (kbd "<f5>") 'universal-argument)
+  (global-set-key (kbd "C-x m") 'mark-whole-buffer)
+
+  #+end_src
+
+* backups
+  #+begin_src emacs-lisp
+  ;; backup
+  ;; http://whattheemacsd.com/init.el-02.html
+  (setq backup-directory-alist '(("." . "~/.config/emacs/backups")))
+
+  ;; Make backups of files, even when they're in version control
+  (setq vc-make-backup-files t)
+
+  ;; (setq make-backup-files nil)
+  ;; (setq auto-save-default nil)
+  #+end_src
+
+* hydra
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'hydra)
+    (package-refresh-contents)
+    (package-install 'hydra))
+  #+end_src
+
+* telephone-line
+  #+begin_src emacs-lisp
+  ;; (package-install 'telephone-line)
+  #+end_src
+* fonts
+  #+begin_src emacs-lisp
+  ;; https://github.com/kuanyui/.emacs.d/blob/master/rc/rc-basic.el#L102
+  ;; https://github.com/leodag/dotfiles/blob/master/emacs/.config/emacs/init.el#L99
+
+  ;; (defvar monospace-font "Fira Mono"
+  ;;   "Preferred monospace font.")
+  ;; (defvar monospace-serif-font "Linux Libertine Mono"
+  ;;   "Preferred monospace serif font.")
+  ;; (defvar sans-serif-font "Fira Sans"
+  ;;   "Preferred sans serif font.")
+
+  ;; (defun set-font-if-installed (face font)
+  ;;   "Set FONT as FACE's family if it is detected in the system."
+  ;;   (if (member monospace-font (font-family-list))
+  ;;       (set-face-attribute face nil :family font)
+  ;;     (message "Font %s not installed!" font)))
+
+  ;; (defun do-set-font ()
+  ;;   "Actually set fonts.
+  ;; Will only run on the first creation of a graphic frame, otherwise
+  ;; font presence cannot be detected."
+  ;;   (when (display-multi-font-p)
+  ;;     (set-font-if-installed 'fixed-pitch-serif monospace-serif-font)
+  ;;     (set-font-if-installed 'variable-pitch sans-serif-font)
+  ;;     (set-font-if-installed 'default monospace-font)
+  ;;     (remove-hook 'server-after-make-frame-hook 'do-set-font)))
+
+  (set-face-attribute 'fixed-pitch-serif nil :family "FiraCode Nerd Font Mono")
+  #+end_src
+* japanese
+  #+begin_src emacs-lisp
+  ;; (require 'mozc)
+  ;; (setq mozc-candidate-style 'overlay)
+
+  ;; (describe-input-method "japanese")
+  (setq default-input-method "japanese")
+  ;; K	Hiragana to Katakana, and vice-versa
+  ;; qq	Toggle from Kana to ASCII
+  ;; qz	Toggle to ‘japanese-zenkaku’.
+  ;; qh	On ‘japanese-zenkaku’, toggle back to Kana
+  ;; RET	Accept the current character sequence.
+  ;; SPC	Proceed to the next stage, Kana-Kanji conversion.
+
+
+  ;; default font for chapanese characters
+  ;; https://superuser.com/questions/280908/how-can-i-change-the-emacs-unicode-font
+  ;; https://emacs.stackexchange.com/questions/19808/align-columns-in-org-mode-table-with-japanese-fonts
+  ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Fontsets.html
+  (set-fontset-font "fontset-default" 'japanese-jisx0208
+                    (font-spec :family "M+ 2m" :width 'normal :underline t))
+
+  ;; (dolist (charset '(han kana symbol cjk-misc bopomofo))
+  ;;          (set-fontset-font (frame-parameter nil 'font)
+  ;;                            charset
+  ;;                            (font-spec :family "文泉驛等寬微米黑")))
+
+  ;; https://emacs.stackexchange.com/questions/10464/japanese-cjk-font-settings-for-proper-horizontal-alignment
+  ;; https://www.reddit.com/r/emacs/comments/8tz1r0/how_to_set_font_according_to_languages_that_i/
+  ;; https://github.com/kuanyui/.emacs.d/blob/master/rc/rc-basic.el#L102
+  ;; in chinese :(
+  ;; https://coldnew.github.io/d5011be2/
+  ;; http://members.optusnet.com.au/~charles57/GTD/emacs_japanese.html
+
+  (when window-system
+    (dolist (charset '(kana han symbol cjk-misc bopomofo))
+      (set-fontset-font (frame-parameter nil 'font) charset
+                        (font-spec :family "Noto Sans CJK SC" :spacing 100 :size nil))))
+
+  ;; ;; (set-fontset-font t 'chinese-gbk
+  ;;                   ;; Noto Sans CJK: https://www.google.com/get/noto/help/cjk/
+  ;;                   (font-spec :family "Noto Sans CJK SC"))
+
+  #+end_src
+** kanji-mode
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'kanji-mode)
+     (package-refresh-contents)
+     (package-install 'kanji-mode))
+   #+end_src
+** unicode-escape
+   #+begin_src emacs-lisp
+
+   ;; https://github.com/kosh04/unicode-escape.el
+   ;; convert unicode chars
+   ;; (unicode-escape "女")       ⟹ \u5973
+   ;; (unicode-unescape "\u5973") ⟹ 女
+   ;; (unicode-escape "〰")
+
+   (unless (package-installed-p 'unicode-escape)
+     (package-refresh-contents)
+     (package-install 'unicode-escape))
+   #+end_src
+* themes
+** installs
+   #+begin_src emacs-lisp
+   (package-install 'solarized-theme)
+   (package-install 'one-themes)
+   (package-install 'gruvbox-theme)
+   (package-install 'almost-mono-themes)
+   (package-install 'modus-vivendi-theme)
+   (package-install 'modus-operandi-theme)
+
+   ;; dark theme
+   (with-eval-after-load 'modus-vivendi-theme
+     (setq modus-vivendi-theme-3d-modeline nil
+           modus-vivendi-theme-rainbow-headings t
+           modus-vivendi-theme-visible-fringes t))
+   ;; modus-operandi-theme-headings 'rainbow-section-no-bold
+   ;; modus-operandi-theme-org-blocks "rainbow")
+
+
+   ;; white-theme
+   (with-eval-after-load 'modus-operandi-theme
+     (setq modus-operandi-theme-3d-modeline nil
+           modus-operandi-theme-rainbow-headings t
+           modus-operandi-theme-visible-fringes t))
+   ;; modus-operandi-theme-org-blocks "rainbow")
+   ;; modus-operandi-theme-headings t
+
+
+   (setq modus-operandi-theme-org-blocks "rainbow"
+         modus-operandi-theme-intense-paren-match t
+         modus-operandi-theme-proportional-fonts nil)
+
+   ;; (let ((class '((class color) (min-colors 89))))
+   ;;   ("mode-line-default-border" . "#767577")
+   ;;   (custom-theme-set-faces
+   ;;    'modus-vivendi
+   ;;    `(mode-line
+   ;;      ((,class (:background "#aabbcc"
+   ;;                            :foreground "#ffffff"
+   ;;                            :box (:line-width 5 :color "#ffffff")))))))
+
+   ;; (let ((class '((class color) (min-colors 89))))
+   ;;   (custom-theme-set-faces
+   ;;    'modus-operandi
+   ;;    `(mode-line
+   ;;      ((,class (:background "#aabbcc"
+   ;;                            :foreground "#ffffff"
+   ;;                            :box (:line-width 5 :color "#ffffff"))))))
+   #+end_src
+
+** theme schemes
+   #+begin_src emacs-lisp
+   ;; scheme sets two themes, a light and a dark theme
+   ;; in this order
+
+   (defcustom modus-theme-scheme
+     '(modus-operandi
+       modus-vivendi)
+     "Modus themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom tango-theme-scheme
+     '(tango
+       tango-dark)
+     "Tango themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom gruvbox-theme-scheme
+     '(gruvbox-light-hard
+       gruvbox-dark-hard)
+     "Gruvbox themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom one-theme-scheme
+     '(one-light
+       one-dark)
+     "One themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom almost-mono-theme-scheme
+     '(almost-mono-white
+       almost-mono-black)
+     "Almost Mono themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom punpunzo-theme-scheme
+     '(punpun-light
+       punpun-dark)
+     "Punpun themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom immaterial-theme-scheme
+     '(immaterial-light
+       immaterial-dark)
+     "Immaterial themes scheme"
+     :type 'list
+     :group 't/theme-schemes)
+
+   (defcustom t/theme-dark nil
+     "Dark theme to be used on inverts.")
+   (defcustom t/theme-light nil
+     "Light theme to be used on inverts.")
+   #+end_src
+** theme functions
+   #+begin_src emacs-lisp
+   (defun t/select (prompt arglist)
+     "Select one from ARGLIST with ivy."
+     (ivy-read prompt arglist))
+
+
+   (defun t/load-theme (theme)
+     "Select a THEME, and one theme only."
+     (interactive)
+     (dolist (th custom-enabled-themes)
+       (disable-theme th))
+     (load-theme theme))
+
+
+   (defun t/set-theme-scheme (theme-scheme)
+     "Set a LIGHT-THEME and DARK-THEME to be used in inverts according to THEME-SCHEME.
+     Light comes first, then Dark"
+     (interactive)
+     (setq t/theme-light (nth 0 theme-scheme))
+     (setq t/theme-dark (nth 1 theme-scheme))
+     ;; set the default theme from the new scheme
+     (t/load-theme t/theme-light))
+
+
+   ;; (t/load-theme (intern ;; https://emacsredux.com/blog/2014/12/05/converting-between-symbols-and-strings/
+   ;;                   (ivy-read "Select Theme: "
+   ;;                             (custom-available-themes))))
+
+
+   (defun t/set-theme-scheme-ivy ()
+     "Set the Theme Scheme to be used on inverts with ivy."
+     (interactive)
+     (t/set-theme-scheme
+      (symbol-value
+       (intern
+        (t/select "Select Theme Scheme: "
+                  ;; emacs 28 needs cl-map instead of just map
+                  (cl-map 'list 'car
+                          (custom-group-members 't/theme-schemes nil)))))))
+
+   (defun t/invert-theme ()
+     "Switch between light/dark themes."
+     (interactive)
+     (cond ((equal (car custom-enabled-themes) t/theme-dark)
+            (t/load-theme t/theme-light)
+            (prin1 t/theme-light))
+           ((equal (car custom-enabled-themes) t/theme-light)
+            (t/load-theme t/theme-dark)
+            (prin1 t/theme-dark))))
+
+
+   (t/set-theme-scheme modus-theme-scheme)
+   ;; (t/set-theme-scheme tango-theme-scheme)
+   ;; (t/set-theme-scheme gruvbox-theme-scheme)
+
+   (global-set-key (kbd "C-c ti") 't/invert-theme)
+   (global-set-key (kbd "C-c t C-i") 't/set-theme-scheme-ivy)
+   #+end_src
+
+* email
+  #+begin_src emacs-lisp
+  ;; email
+  ;; (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+  ;; (require 'mu4e)
+  ;; (with-eval-after-load 'mu4e
+  ;; (load-file "~/doc/emacs-files/t-mu4e.el"))
+  #+end_src
+* org-mode
+  #+begin_src emacs-lisp
+
+  (setq org-src-fontify-natively t
+        org-src-tab-acts-natively t
+        org-confirm-babel-evaluate nil
+        org-edit-src-content-indentation 0
+        org-src-window-setup 'current-window)
+
+  (with-eval-after-load 'org-mode
+
+    ;; https://www.gnu.org/software/emacs/manual/html_node/org/Languages.html#Languages
+    ;; (org-babel-do-load-languages 'org-babel-load-languages
+    ;; 			       '((emacs-lisp	. t)
+    ;; 				 (python	. t)
+    ;; 				 (lua		. t)
+    ;; 				 (common-lisp	. t)))
+
+    (setq org-structure-template-alist
+          '(("a" . "export ascii")
+            ("E" . "export")
+            ("h" . "export html")
+            ("l" . "export latex")
+            ("c" . "center")
+            ("C" . "comment")
+            ("q" . "quote")
+            ("e" . "example")
+            ("se" . "src emacs-lisp")
+            ("ss" . "src shell-script")
+            ("sc" . "src common-lisp")
+            ("v" . "verse")))
+
+    (org-babel-do-load-languages 'org-babel-load-languages
+                                 '((emacs-lisp	. t)
+                                   (python	. t)
+                                   (lua		. t)))
+
+    (org-babel-do-load-languages 'org-babel-load-languages
+                                 '((emacs-lisp	. t)
+                                   (python	. t)
+                                   (lua		. t)))
+
+    ;; faces
+    (custom-set-faces
+     '(org-block ((t (:inherit ## :background nil :foreground nil))))
+     '(org-block-begin-line ((t (:inherit nil :background nil :foreground nil))))
+     '(org-code ((t (:inherit nil :foreground nil))))
+     '(org-document-info-keyword ((t (:inherit nil :foreground nil))))
+     '(org-indent ((t (:inherit org-hide ))))
+     ;; '(org-indent ((t (:inherite nil :background nil))))
+     '(org-table ((t (:inherit nil :foreground nil))))
+     '(org-verbatim ((t (:inherit nil :background nil :foreground nil)))))
+
+    ;; electric pairs for org rich-text
+    (setq electric-pair-pairs '((?\/ . ?\/)
+                                (?\* . ?\*)
+                                (?\_ . ?\_)
+                                (?\= . ?\=)))
+
+    (setq org-goto-auto-isearch nil)
+
+    (define-key org-mode-map (kbd "C-'") nil)
+    (define-key org-mode-map (kbd "C-\"") nil)
+
+
+    (add-hook 'org-mode-hook 'electric-pair-local-mode))
+  #+end_src
+* ibuffer
+  #+begin_src emacs-lisp
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
+  ;; (with-eval-after-load 'ibuffer
+  ;;   (load-file "~/doc/emacs-files/t-ibuffer.el"))
+
+  (add-hook 'ibuffer-mode-hook
+            (lambda ()
+              (ibuffer-auto-mode 1)
+              (ibuffer-switch-to-saved-filter-groups "default")))
+
+
+  ;; good old ibuffer fucking everything
+  (with-eval-after-load 'ibuffer
+    (setq ibuffer-show-empty-filter-groups nil)
+
+    (setq ibuffer-saved-filter-groups
+          (quote (("default"
+                   ("Dired" (mode . dired-mode))
+                   ("Prog" (or (mode . lisp-mode)
+                               (mode . emacs-lisp-mode)
+                               (name . "\\*slime-repl sbcl\\*")
+                               (mode . python-mode)
+                               (name . "^\\*Python.*\\*$")
+                               (mode . lua-mode)
+                               (mode . c-mode) (mode . c++-mode)
+                               (mode . sh-mode)
+                               (mode . diff-mode)
+                               ;; (mode . nix-mode)
+                               (name . "^Makefile$")
+                               (name . "^CMakeLists.*")))
+                   ("Web" (or (mode . html-mode)
+                              (name . "^.*\.[xh]+tml$")
+                              (mode . nxml-mode)
+                              (name . ".*\.xml$")
+                              (mode . css-mode)
+                              (name . ".*\.css$")))
+                   ("Org"	(name . "^.*org$"))
+                   ("Books" (or (name . "^.*.epub$")
+                                (name . "^.*.pdf$")))
+                   ("Confs" (or (mode . conf-mode)
+                                (name . "^.*.conf$")
+                                (name . "^.*.rc$")))
+                   ("Images" (mode . image-mode))
+                   ("Shell" (or (mode . eshell-mode) (mode . shell-mode)))
+                   ("Manual" (or (mode . Info-mode)
+                                 (mode . Man-mode)
+                                 (mode . help-mode)
+                                 (name . "^\\*WoMan.*\\*$")))
+                   ("Elfeed" (or (name . "\\*elfeed-.*\\*")))
+                   ("Customize" (mode . Custom-mode))
+                   ("Emacs" (or (name . "^\\*scratch\\*$")
+                                (name . "^\\*Messages\\*$")
+                                (name . "^\\*Packages\\*$")))))))
+
+
+    ;; https://www.emacswiki.org/emacs/IbufferMode#toc2
+    (setq mp/ibuffer-collapsed-groups (list "Emacs"))
+
+    (defadvice ibuffer (after collapse-helm)
+      (dolist (group mp/ibuffer-collapsed-groups)
+        (progn
+          (goto-char 1)
+          (when (search-forward (concat "[ " group " ]") (point-max) t)
+            (progn
+              (move-beginning-of-line nil)
+              (ibuffer-toggle-filter-group)))))
+      (goto-char 1)
+      (search-forward "[ " (point-max) t))
+
+    (ad-activate 'ibuffer)
+
+
+
+
+
+    (define-key ibuffer-mode-map (kbd "C-x v") 'split-window-vertically)
+    (define-key ibuffer-mode-map (kbd "C-x h") 'split-window-horizontally)
+    (define-key ibuffer-mode-map (kbd "M-o") nil))
+  #+end_src
+
+* trr
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'trr)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'trr))
+  #+end_src
+
+* telega
+  #+begin_src emacs-lisp
+  ;; (add-to-list 'load-path "~/doc/telega.el")
+  ;; (require 'telega)
+  #+end_src
+
+* elpher
+  #+begin_src emacs-lisp
+  ;; (package-install 'elpher)
+  #+end_src
+
+* elfeed
+  #+begin_src emacs-lisp
+  ;; (package-install 'elfeed-org)
+
+  ;; (setq rmh-elfeed-org-files (list "~/.config/emacs/elfeed-list.org"))
+  #+end_src
+
+* eshell
+  #+begin_src emacs-lisp
+  ;; (package-install 'eshell)
+  (global-set-key (kbd "C-c te") 'eshell)
+  #+end_src
+
+* exec-path-from-shell
+  #+begin_src emacs-lisp
+  ;; ;; https://github.com/purcell/exec-path-from-shell
+
+  ;; (unless (package-installed-p 'exec-path-from-shell)
+  ;;       (package-refresh-contents)
+  ;;       (package-install 'exec-path-from-shell))
+
+  ;; (setq exec-path-from-shell-arguments nil
+  ;; 	      exec-path-from-shell-variables '("PATH"
+  ;; 									       "MANPATH"
+  ;; 									       "GUILE_LOAD_PATH"))
+  ;; (when (memq window-system '(mac ns x))
+  ;;       (exec-path-fr77.894650547 secondsom-shell-initialize))
+  #+end_src
+
+* vterm
+  #+begin_src emacs-lisp
+  ;; (package-install 'vterm)
+  #+end_src
+
+* whitespace
+  #+begin_src emacs-lisp
+  ;; WARNING: This will change your life
+  ;; (OPTIONAL) Visualize tabs as a pipe character - "|"
+  ;; This will also show trailing characters as they are useful to spot.
+  (setq whitespace-style '(face tabs tab-mark trailing))
+
+  (custom-set-faces
+   '(whitespace-tab ((t (:foreground "#636363")))))
+
+  ;; (set-face-attribute 'whitespace nil :foreground "#646363")
+
+  (setq whitespace-display-mappings
+        '((tab-mark 9 [124 9] [92 9]))) ; 124 is the ascii ID for '\|'
+
+  (setq-default tab-always-indent 'complete)
+  (setq-default tab-width 4)
+  (setq-default indent-tabs-mode nil)
+
+  (defadvice save-buffer (after whitespace-cleanup-on-save activate)
+    "Clean useless whitespace every time Emacs saves a buffer."
+    (whitespace-cleanup))
+
+  (global-set-key (kbd "C-c lw") 'whitespace-mode)
+  (global-set-key (kbd "C-c lc") 'whitespace-cleanup)
+  #+end_src
+
+* equake
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'equake)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'equake))
+
+  ;; (global-set-key (kbd "<f12>") 'equake-invoke)
+  #+end_src
+
+* evil-numbers
+  #+begin_src emacs-lisp
+  (package-install 'evil-numbers)
+
+  (global-set-key (kbd "C-c np") 'evil-numbers/inc-at-pt)
+  (global-set-key (kbd "C-c nn") 'evil-numbers/dec-at-pt)
+  #+end_src
+
+* centaur-tabs
+  #+begin_src emacs-lisp
+
+  (package-install 'centaur-tabs)
+
+  (setq centaur-tabs-set-bar 'under
+        x-underline-at-descent-line t
+        ;; bar, alternate, box, chamfer, rounded, slant, wave, zigzag
+        centaur-tabs-style "bar"
+        centaur-tabs-set-icons t
+        centaur-tabs-height 18)
+
+  ;; https://github.com/ema2159/centaur-tabs#prevent-the-access-to-specified-buffers
+  (defun centaur-tabs-hide-tab (x)
+    (let ((name (format "%s" x)))
+      (or (string-prefix-p "*Compile-Log*"    name)
+          (string-prefix-p "*lsp"             name)
+          (string-prefix-p "*Flycheck error*"	name)
+          (string-prefix-p "*which-key*"      name)
+          (string-prefix-p "*Completions*"    name)
+          (string-prefix-p "*Messages*"       name)
+          (and (string-prefix-p "magit"		name)
+               (not (file-name-extension      name))))))
+
+  (centaur-tabs-mode t)
+  (centaur-tabs-headline-match)
+
+  (global-set-key (kbd "C-<prior>") 'centaur-tabs-backward)
+  (global-set-key (kbd "C-<next>") 'centaur-tabs-forward)
+  (global-set-key (kbd "C-S-<prior>") 'centaur-tabs-move-current-tab-to-left)
+  (global-set-key (kbd "C-S-<next>") 'centaur-tabs-move-current-tab-to-right)
+  #+end_src
+
+* focus
+  #+begin_src emacs-lisp
+  (package-install 'focus)
+
+  (global-set-key (kbd "C-c lf") 'focus-read-only-mode)
+  (add-hook 'focus-read-only-mode
+            '(lambda ()
+               (define-key focus-read-only-mode-map (kbd "e") 'scroll-up-line)
+               (define-key focus-read-only-mode-map (kbd "i") 'scroll-down-line)))
+  #+end_src
+
+* lsp-mode
+  #+begin_src emacs-lisp
+  (package-install 'lsp-mode)
+
+  (setq lsp-auto-guess-root nil)
+  ;; Use flycheck instead of flymake
+
+  (setq lsp-prefer-flymake nil)
+
+  ;; (define-key lsp-mode-map (kbd "C-c C-f") 'lsp-format-buffer)
+
+  (add-hook 'python-mode-hook 'lsp)
+  (add-hook 'c-mode-hook 'lsp)
+  (add-hook 'c++-mode-hook 'lsp)
+  (add-hook 'lua-mode-hook 'lsp)
+  (add-hook 'shell-mode-hook 'lsp)
+  (add-hook 'emacs-lisp-mode-hook 'lsp)
+  (add-hook 'go-mode-hook 'lsp)
+  #+end_src
+
+* company
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'company)
+    (package-refresh-contents)
+    (package-install 'company))
+
+  (setq company-idle-delay 0
+        company-minimum-prefix-length 3)
+
+  ;; (add-to-list 'company-backends 'company-elisp)
+
+  (global-company-mode t)
+
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "M-n") nil)
+    (define-key company-active-map (kbd "M-p") nil)
+    (define-key company-active-map (kbd "C-n") #'company-select-next)
+    (define-key company-active-map (kbd "C-p") #'company-select-previous)
+    (define-key company-active-map (kbd "SPC") #'company-abort)
+    (define-key company-active-map (kbd "C-h") nil))
+  #+end_src
+** company-systemd
+   #+begin_src emacs-lisp
+   ;; (unless (package-installed-p 'systemd)
+   ;;   (package-refresh-contents)
+   ;;   (package-install 'systemd))
+
+   ;; (add-to-list 'company-backends 'systemd-company-backend)
+   #+end_src
+** company-irony
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'irony)
+     (package-refresh-contents)
+     (package-install 'irony))
+
+   (add-to-list 'company-backends 'company-irony)
+   #+end_src
+** company-shell
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'company-shell)
+     (package-refresh-contents)
+     (package-install 'company-shell))
+
+   (add-to-list 'company-backends 'systemd-company-backend)
+   #+end_src
+
+** company-statistics
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'company-statistics)
+     (package-refresh-contents)
+     (package-install 'company-statistics))
+
+   ;; (add-hook 'company-mode-hook 'company-statistics-mode)
+   #+end_src
+
+* python
+** elpy
+   #+begin_src emacs-lisp
+   ;; (unless (package-installed-p 'elpy)
+   ;;   (package-refresh-contents)
+   ;;   (package-install 'elpy))
+
+   ;; (add-to-list 'company-backends 'elpy-company-backend)
+   ;; ;; (defadvice elpy-enable (after python-mode activate))
+   ;; (add-hook 'python-mode-hook 'elpy-enable)
+   #+end_src
+
+* yasnippet
+  #+begin_src emacs-lisp
+  (package-install 'yasnippet)
+
+  (add-hook 'prog-mode-hook 'yas-minor-mode)
+  (add-hook 'org-mode-hook 'yas-minor-mode)
+
+  (global-set-key (kbd "C-c y") 'yas-insert-snippet)
+  #+end_src
+
+* smartparens
+  #+begin_src emacs-lisp
+  (package-install 'smartparens)
+
+  (setq sp-escape-quotes-after-insert nil)
+
+  (with-eval-after-load 'smartparens-mode
+    (require 'smartparens-config))
+
+  (add-hook 'prog-mode-hook 'smartparens-mode)
+
+  (global-set-key (kbd "C-M-a")       'sp-beginning-of-sexp)
+  (global-set-key (kbd "C-M-e")       'sp-end-of-sexp)
+  (global-set-key (kbd "C-M-f")       'sp-forward-sexp)
+  (global-set-key (kbd "C-M-b")       'sp-backward-sexp)
+  (global-set-key (kbd "C-M-p")       'sp-previous-sexp)
+  (global-set-key (kbd "C-M-n")       'sp-next-sexp)
+  (global-set-key (kbd "<C-down>")    'sp-down-sexp)
+  (global-set-key (kbd "<C-up>")      'sp-up-sexp)
+  #+end_src
+
+* avy
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'avy)
+    (package-refresh-contents)
+    (package-install 'avy))
+
+  ;; homerow!!!
+  (setq avy-keys '(?a ?r ?s ?t ?n ?e ?i ?o)
+        ;; replaces only the first char by the selection key
+        avy-style 'at
+        ;; greys out text while in selection
+        avy-background t)
+
+  (defhydra hydra-avy (:color green :hint nil)
+    "
+
+              [_l_]: jump to line		[_t_]: jump to char w/ timer
+              [_w_]: jump to word		[_;_]: jump to char
+    "
+    (";"	avy-goto-char-2)
+    ("l"	avy-goto-line)
+    ("w"	avy-goto-word-0)
+    ("t"	avy-goto-char-timer))
+
+  (global-set-key (kbd "C-;") 'hydra-avy/body)
+  #+end_src
+
+* keymaps
+  #+begin_src emacs-lisp
+  ;; (global-set-key (kbd "C-x k")
+  ;; 		'(lambda ()
+  ;; 		   (interactive)
+  ;; 		   (let (last-visited-buffer-on-frame (last-buffer))
+  ;; 		     (kill-buffer)
+  ;; 		     (switch-to-buffer last-visited-buffer-on-frame))))
+  (global-set-key (kbd "C-x k") 'kill-buffer)
+
+  (global-set-key (kbd "C-c ko") 'delete-other-windows)
+  (global-set-key (kbd "C-c kk") 'kill-current-buffer)
+  (global-set-key (kbd "C-c kw") 'kill-buffer-and-window)
+  (global-set-key (kbd "C-c kl") 't/kill-switch-other-window)
+
+  (global-set-key (kbd "C-c kf") 'delete-frame)
+
+  (with-eval-after-load 'Man-mode
+    (define-key Man-mode-map (kbd "e") 'scroll-up-line)
+    (define-key Man-mode-map (kbd "i") 'scroll-down-line))
+
+  (with-eval-after-load 'woman-mode
+    (define-key woman-mode-map (kbd "e") 'scroll-up-line)
+    (define-key woman-mode-map (kbd "i") 'scroll-down-line))
+
+  (add-hook 'help-mode-hook
+            '(lambda ()
+               (define-key help-mode-map (kbd "e") 'scroll-up-line)
+               (define-key help-mode-map (kbd "i") 'scroll-down-line)))
+  #+end_src
+
+* expand-region
+  #+begin_src emacs-lisp
+  (package-install 'expand-region)
+
+  (setq expand-region-subword-enabled t
+        expand-region-smart-cursor t
+        expand-region-fast-keys-enabled t
+        expand-region-skip-whitespace t)
+
+  ;; (with-eval-after-load 'org-mode
+  ;;   (define-key org-mode-map (kbd "C-'") nil))
+
+  (global-set-key (kbd "C-'")  'er/expand-region)
+  (global-set-key (kbd "C-\"") 'er/contract-region)
+  #+end_src
+
+* diminish
+  #+begin_src emacs-lisp
+  (package-install 'diminish)
+
+  (diminish 'eldoc-mode)
+  (diminish 'slime-autodoc-mode)
+  (diminish 'auto-revert-mode)
+  (diminish 'font-lock-mode)
+  (diminish 'subword-mode)
+  (diminish 'highlight-indentation-mode)
+  (diminish 'hi-lock-mode)
+  (diminish 'subword-mode)
+  (diminish 'zoom-mode)
+  (diminish 'smartparens-mode)
+  (diminish 'which-key-mode)
+  #+end_src
+
+* swiper
+  #+begin_src emacs-lisp
+  (package-install 'swiper)
+
+  (global-set-key (kbd "C-c ss") 'swiper)
+  #+end_src
+
+* which-key
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'which-key)
+    (package-refresh-contents)
+    (package-install 'which-key))
+
+  (setq which-key-compute-remaps t
+        which-key-frame-max-height 40
+        which-key-idle-delay 0.8)
+
+  (which-key-mode t)
+  #+end_src
+
+* zoom-window
+  #+begin_src emacs-lisp
+  (package-install 'zoom-window)
+
+  (global-set-key (kbd "C-c <C-return>") 'zoom-window-zoom)
+  #+end_src
+
+* multiple-cursors
+  #+begin_src emacs-lisp
+  (package-install 'multiple-cursors)
+  ;; https://github.com/magnars/multiple-cursors.el
+
+  (defhydra hydra-mc (:color green :hint nil)
+    "
+      _e_: edit lines		_a_: mark all like this	_C-a_:mc/edit-beginnings-of-lines	_d_: mc/mark-all-dwin
+      _n_: mark next line	_p_: mark previous	_C-e_: mc/edit-ends-of-lines	_0_:mc/insert-numbers	_l_:mc/insert-letters
+      "
+
+    ("e"	mc/edit-lines)
+    ;; mark arg-lines, arg given by the _universal-argument_
+    ("n"	(lambda (arg) (interactive "p") (mc/mark-next-lines arg)) :exit t)
+    ("p"	(lambda (arg) (interactive "p") (mc/mark-previous-lines arg)) :exit t)
+    ("a"	mc/mark-all-like-this :exit t)
+    ("C-a"	mc/edit-beginnings-of-lines)
+    ("C-e"	mc/edit-ends-of-lines)
+    ("d"	mc/mark-all-dwim :exit t)  ;; good shit!
+    ("0"	mc/insert-numbers :exit t) ;; number the lines with cursors
+    ("l"	mc/insert-letters :exit t));; same, but with letters
+
+
+  (global-set-key (kbd "C-c mc")  'hydra-mc/body)
+  (global-set-key (kbd "C->")     'mc/mark-next-lines)
+  (global-set-key (kbd "C-<")     'mc/mark-previous-lines)
+  #+end_src
+
+* transpose-frame
+  #+begin_src emacs-lisp
+  (package-install 'transpose-frame)
+  (global-set-key (kbd "C-c tf") 'transpose-frame)
+  #+end_src
+
+* zoom
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'zoom)
+    (package-refresh-contents)
+    (package-install 'zoom))
+
+  ;; better golden-ratio
+  ;; https://github.com/cyrus-and/zoom
+  ;; https://github.com/emacsorphanage/zoom-window
+
+  (setq zoom-size '(0.618 . 0.618)
+        zoom-minibuffer-preserve-layout nil
+        zoom-window-mode-line-color "cyan")
+
+  (zoom-mode t)
+
+  (global-set-key (kbd "C-c tz") 'zoom-mode)
+  #+end_src
+
+* dired
+  #+begin_src emacs-lisp
+  (add-hook 'dired-mode-hook 'dired-hide-details-mode)
+  (setq dired-listing-switches "-hBADl --group-directories-first")
+  ;; (add-hook 'dired-mode-hook 'dired-git-info-mode)
+  #+end_src
+** dired-subtree
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'dired-subtree)
+     (package-refresh-contents)
+     (package-install 'dired-subtree))
+
+   (setq dired-subtree-use-backgrounds nil)
+
+   (define-key dired-mode-map (kbd "<tab>") 'dired-subtree-toggle)
+   (define-key dired-mode-map (kbd "<C-tab>") 'dired-subtree-cycle)
+   (define-key dired-mode-map (kbd "<S-iso-lefttab>") 'dired-subtree-remove)
+   #+end_src
+** dired-collapse
+   Collapse unique nested paths in dired listing.
+
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'dired-collapse)
+     (package-refresh-contents)
+     (package-install 'dired-collapse))
+   #+end_src
+** diredfl
+   https://github.com/purcell/diredfl
+   Extra Emacs font lock rules for a more colourful dired.
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'diredfl)
+     (package-refresh-contents)
+     (package-install 'diredfl))
+
+   (add-hook 'dired-mode-hook 'diredfl-mode)
+   #+end_src
+* nov
+  #+begin_src emacs-lisp
+  (package-install 'nov)
+
+  ;; epubs are open in nov by default
+  (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+
+  ;; 80 collums by default
+  (setq nov-text-width 75)
+  (defun my-nov-font-setup ()
+    (interactive)
+    (face-remap-add-relative 'variable-pitch
+                             :family "Input Sans Mono"
+                             :height 1.0)
+
+    (define-key nov-mode-map (kbd "e") 'scroll-up-line)
+    (define-key nov-mode-map (kbd "i") 'scroll-down-line))
+
+  (add-hook 'nov-mode-hook 'my-nov-font-setup)
+
+  ;; M-x add-file-local-variable RET olivetti-body-width RET 66 RET
+
+  #+end_src
+
+* eww
+  #+begin_src emacs-lisp
+  (add-hook 'eww-mode-hook
+            '(lambda ()
+               (define-key eww-mode-map (kbd "e") 'scroll-up-line)
+               (define-key eww-mode-map (kbd "i") 'scroll-down-line)
+
+               (define-key eww-mode-map (kbd "l") 'eww-list-bookmarks)
+               (define-key eww-mode-map (kbd "B") 'eww-add-bookmark)
+
+               ;; sane bindings for back and forward on history
+               (define-key eww-mode-map (kbd "b") 'eww-back-url)
+               (define-key eww-mode-map (kbd "f") 'eww-forward-url)
+
+               (define-key eww-mode-map (kbd "N") 'eww-next-url)
+               (define-key eww-mode-map (kbd "P") 'eww-previous-url)
+
+               ;; /kinda/ like 'reader mode' from firefox.
+               (define-key eww-mode-map (kbd "R") 'eww-readable)
+
+               ;; click opens link at point instead of in external browser
+               (define-key eww-mode-map (kbd "<mouse-1>") 'eww-follow-link)
+
+               ;; by default 'r' eww goes forward(!!!) in history
+               ;; and 'p' goes back
+               (define-key eww-mode-map (kbd "r") nil)
+               (define-key eww-mode-map (kbd "n") nil)
+               (define-key eww-mode-map (kbd "p") nil)))
+
+  (setq eww-download-directory "~/dow"
+        eww-bookmarks-directory "~/doc/bitbucket/dotfiles/emacs/eww")
+
+  (setq eww-form-text '((t (:background "#505050" :foreground "white" :box 1 :slant normal :weight normal :height 100 :width normal :foundry "FBI" :family "Input Mono"))))
+
+  #+end_src
+
+* undo-tree
+  #+begin_src emacs-lisp
+  (package-install 'undo-tree)
+
+  (diminish 'undo-tree-mode)
+  (global-undo-tree-mode)
+  #+end_src
+
+* undo-fu
+  #+begin_src emacs-lisp :tangle no
+  (unless (package-installed-p 'undo-fu)
+    (package-refresh-contents)
+    (package-install 'undo-fu))
+
+  (with-eval-after-load 'undo-fu
+    (global-set-key (kbd "C-/")   'undo-fu-only-undo)
+    (global-set-key (kbd "C-S-/") 'undo-fu-only-redo))
+  #+end_src
+
+* rainbow-delimiters
+  #+begin_src emacs-lisp
+  (package-install 'rainbow-delimiters)
+
+  (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+  #+end_src
+* rainbow-mode
+  #+begin_src emacs-lisp
+  (package-install 'rainbow-mode)
+
+  (global-set-key (kbd "C-c lr") 'rainbow-mode)
+  #+end_src
+
+* neotree
+  #+begin_src emacs-lisp
+  (package-install 'neotree)
+
+  (setq neo-theme 'arrow
+        neo-window-width 30)
+
+  (global-set-key (kbd "C-c nt") 'neotree-toggle)
+  #+end_src
+
+* c
+  #+begin_src emacs-lisp
+  (setq c-basic-offset 4
+        tab-width 4
+        indent-tabs-mode t
+        c-default-style "linux")
+  #+end_src
+** irony
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'irony)
+     (package-refresh-contents)
+     (package-install 'irony))
+
+   (add-hook 'c++-mode-hook 'irony-mode)
+   (add-hook 'C/*l-mode-hook 'irony-mode)
+   (add-hook 'c-mode-hook 'irony-mode)
+   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+   #+end_src
+
+* eyebrowse
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'eyebrowse)
+    (package-refresh-contents)
+    (package-install 'eyebrowse))
+
+  (eyebrowse-mode t)
+
+  (define-key eyebrowse-mode-map (kbd "C-c C-w TAB") 'eyebrowse-last-window-config)
+  #+end_src
+
+* counsel
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'counsel)
+    (package-refresh-contents)
+    (package-install 'counsel))
+
+  (setq ivy-height 15
+        ivy-use-virtual-buffers t
+        ivy-display-style 'fancy
+        ivy-count-format "[%d / %d] ")
+  (with-eval-after-load 'ibuffer
+    (define-key ibuffer-mode-map (kbd "C-x C-f") nil))
+
+  (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  (global-set-key (kbd "C-x f") 'counsel-fzf)
+  (global-set-key (kbd "C-x d") 'counsel-dired)
+
+  (global-set-key (kbd "M-x") 'counsel-M-x)
+  (global-set-key (kbd "C-x b") 'ivy-switch-buffer)
+  (global-set-key (kbd "M-y") 'counsel-yank-pop)
+
+  (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+  (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+  (global-set-key (kbd "<f1> l") 'counsel-find-library)
+  (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+  (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+  #+end_src
+
+* ivy-rich
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'ivy-rich)
+    (package-refresh-contents)
+    (package-install 'ivy-rich))
+
+  (ivy-rich-mode t)
+  #+end_src
+
+* idle-highlight
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'idle-highlight-mode)
+    (package-refresh-contents)
+    (package-install 'idle-highlight-mode))
+
+  (add-hook 'prog-mode-hook '(lambda ()
+                               (when (window-system)
+                                 (idle-highlight-mode))))
+  #+end_src
+
+* paradox
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'paradox)
+    (package-refresh-contents)
+    (package-install 'paradox))
+
+  (paradox-enable)
+  #+end_src
+
+* common-lisp
+  #+begin_src emacs-lisp
+  (package-install 'slime)
+  (package-install 'slime-company)
+
+  ;; substring cuts the newline from the output
+  ;; https://stackoverflow.com/a/5020475
+  (defconst t/sbcl-binary
+    (substring (shell-command-to-string "which sbcl") 0 -1)
+    "Location to the sbcl binary, to be used by slime.
+  Pretty useful on nixos/guix")
+
+  (setq inferior-lisp-program t/sbcl-binary)
+
+  (slime-setup '(slime-company
+                 slime-fancy))
+
+  ;; (load (expand-file-name "~/quicklisp/slime-helper.el"))
+  #+end_src
+* pdf
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'pdf-tools)
+    (package-refresh-contents)
+    (package-install 'pdf-tools))
+
+  ;; (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
+  (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-tools-install))
+
+  (setq pdf-outline-enable-imenu t)
+
+  (with-eval-after-load 'pdf-virtual-view-mode
+    (define-key 'pdf-view-mode-map (kbd "e") 'pdf-view-next-line-or-next-page)
+    (define-key 'pdf-view-mode-map (kbd "i") 'pdf-view-previous-line-or-previous-page)
+    (define-key 'pdf-view-mode-map (kbd "C-v") 'pdf-view-next-page)
+    (define-key 'pdf-view-mode-map (kbd "C-u") 'pdf-view-previous-page))
+  #+end_src
+
+* xah-math-input
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'xah-math-input)
+    (package-refresh-contents)
+    (package-install 'xah-math-input))
+
+  (with-eval-after-load 'xah-math-input
+    ;; unset Shift+space
+    (define-key xah-math-input-keymap (kbd "S-SPC") nil)
+    (define-key xah-math-input-keymap (kbd "S-SPC") 'xah-math-input-change-to-symbol))
+
+  (with-eval-after-load 'org-mode
+    (require 'xah-math-input-mode))
+  #+end_src
+
+* modern-sh
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'modern-sh)
+    (package-refresh-contents)
+    (package-install 'modern-sh))
+
+  (add-hook 'sh-mode-hook #'modern-sh-mode)
+  #+end_src
+
+* aggressive-indent
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'aggressive-indent)
+    (package-refresh-contents)
+    (package-install 'aggressive-indent))
+  #+end_src
+
+* desktop+
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'desktop+)
+    (package-refresh-contents)
+    (package-install 'desktop+))
+  #+end_src
+
+* crux
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'crux)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'crux))
+  #+end_src
+
+* esup
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'esup)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'esup))
+  #+end_src
+
+* flycheck
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'flycheck)
+    (package-refresh-contents)
+    (package-install 'flycheck))
+  #+end_src
+** flycheck-inline
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'flycheck-inline)
+     (package-refresh-contents)
+     (package-install 'flycheck-inline))
+   #+end_src
+** flycheck
+   #+begin_src emacs-lisp
+   (unless (package-installed-p 'flycheck-guile)
+     (package-refresh-contents)
+     (package-install 'flycheck-guile))
+   #+end_src
+* guix
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'guix)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'guix))
+
+  ;; (add-hook 'scheme-mode-hook 'guix-devel-mode)
+  #+end_src
+
+* scheme-complete
+  #+begin_src emacs-lisp
+  ;; (unless (package-installed-p 'scheme-complete)
+  ;;    (package-refresh-contents)
+  ;;    (package-install 'scheme-complete))
+
+  ;; (eval-after-load 'scheme
+  ;;   '(define-key scheme-mode-map "\t" 'scheme-complete-or-indent))
+
+  ;; (autoload 'scheme-get-current-symbol-info "scheme-complete" nil t)
+  ;; (add-hook 'scheme-mode-hook
+  ;;           (lambda ()
+  ;;             (setq lisp-indent-function 'scheme-smart-indent-function)
+  ;;             (make-local-variable 'eldoc-documentation-function)
+  ;;             (setq eldoc-documentation-function 'scheme-get-current-symbol-info)
+  ;;             (eldoc-mode)))
+  #+end_src
+
+* jbeans-theme
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'jbeans-theme)
+    (package-refresh-contents)
+    (package-install 'jbeans-theme))
+  #+end_src
+
+* ledger-mode
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'ledger-mode)
+    (package-refresh-contents)
+    (package-install 'ledger-mode))
+  #+end_src
+
+* tablist
+  #+begin_src emacs-lisp
+  (unless (package-installed-p 'tablist)
+    (package-refresh-contents)
+    (package-install 'tablist))
+  #+end_src
+
+* moody mode-line
+  https://github.com/tarsius/moody
+  #+begin_src emacs-lisp
+  ;; (package-install 'moody)
+  #+end_src
+* bug-hunter
+  https://github.com/Malabarba/elisp-bug-hunter
